@@ -17,12 +17,12 @@ function toggleBox(boxId) {
 
 // ==================== 1. 遊戲設定與水果資料庫 (✨ 放大 2 倍 ✨) ====================
 const FRUIT_TYPES = [
-    { name: '草莓', radius: 40, score: 2,  color: '#ff4d4d', emoji: '🍓', fontSize: 64 },
-    { name: '檸檬', radius: 60, score: 5,  color: '#ffd700', emoji: '🍋', fontSize: 96 },
-    { name: '橘子', radius: 84, score: 12, color: '#ffa500', emoji: '🍊', fontSize: 136 },
-    { name: '番茄', radius: 110, score: 25, color: '#ff6347', emoji: '🍅', fontSize: 176 },
-    { name: '葡萄', radius: 144, score: 50, color: '#9370db', emoji: '🍇', fontSize: 230 },
-    { name: '西瓜', radius: 190, score: 100,color: '#2ed573', emoji: '🍉', fontSize: 310 }
+    { name: '草莓', radius: 30, score: 2,  color: '#ff4d4d', emoji: '🍓', fontSize: 64 },
+    { name: '檸檬', radius: 45, score: 5,  color: '#ffd700', emoji: '🍋', fontSize: 96 },
+    { name: '橘子', radius: 63, score: 12, color: '#ffa500', emoji: '🍊', fontSize: 136 },
+    { name: '番茄', radius: 75, score: 25, color: '#ff6347', emoji: '🍅', fontSize: 176 },
+    { name: '葡萄', radius: 108, score: 50, color: '#9370db', emoji: '🍇', fontSize: 230 },
+    { name: '西瓜', radius: 130, score: 100,color: '#2ed573', emoji: '🍉', fontSize: 310 }
 ];
 
 const DEAD_LINE_Y = 220; // 💀 水平死亡線的 Y 軸位置 (配合大水果調整)

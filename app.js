@@ -2,26 +2,30 @@
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('PWA Service Worker 註冊成功！', reg.scope))
+            .then(reg => console.log('PWA Service Worker 註冊成功！'))
             .catch(err => console.log('PWA Service Worker 註冊失敗：', err));
     });
 }
 
-// (下面維持原本的 FRUIT_TYPES 遊戲程式碼...)
-// ==================== 1. 遊戲設定與水果資料庫 ====================
+// ==================== 1. 遊戲設定與水果資料庫（半徑加大、新增字體大小） ====================
 const FRUIT_TYPES = [
-    { name: '草莓', radius: 15, score: 2,  color: '#ff4d4d', emoji: '🍓' },
-    { name: '檸檬', radius: 25, score: 5,  color: '#ffd700', emoji: '🍋' },
-    { name: '橘子', radius: 35, score: 12, color: '#ffa500', emoji: '🍊' },
-    { name: '番茄', radius: 48, score: 25, color: '#ff6347', emoji: '🍅' },
-    { name: '葡萄', radius: 62, score: 50, color: '#9370db', emoji: '🍇' },
-    { name: '西瓜', radius: 80, score: 100,color: '#2ed573', emoji: '🍉' } // 終極目標！
+    { name: '草莓', radius: 20, score: 2,  color: '#ff4d4d', emoji: '🍓', fontSize: 32 },
+    { name: '檸檬', radius: 30, score: 5,  color: '#ffd700', emoji: '🍋', fontSize: 48 },
+    { name: '橘子', radius: 42, score: 12, color: '#ffa500', emoji: '🍊', fontSize: 68 },
+    { name: '番茄', radius: 55, score: 25, color: '#ff6347', emoji: '🍅', fontSize: 88 },
+    { name: '葡萄', radius: 72, score: 50, color: '#9370db', emoji: '🍇', fontSize: 115 },
+    { name: '西瓜', radius: 95, score: 100,color: '#2ed573', emoji: '🍉', fontSize: 155 }
 ];
 
+const DEAD_LINE_Y = 170; // 💀 水平死亡線的 Y 軸位置
 let currentScore = 0;
-let currentMode = 'login'; // 'login' 或 'register'
+let currentMode = 'login';
 let currentUser = null;
-let nextFruitIndex = 0;
+
+let currentFruitIndex = 0; // 當前手上握著的水果
+let nextFruitIndex = 0;    // 下一個預期水果
+let currentMouseX = 250;   // 紀錄滑鼠或手指目前的 X 位置
+let gameOverCounter = 0;   // 用來計算超過死亡線的時間（避免剛掉下去就死）
 
 // ==================== 2. 使用者系統（模擬後端） ====================
 function switchTab(mode) {
@@ -40,43 +44,29 @@ function handleAuth(e) {
     let db = JSON.parse(localStorage.getItem('fruit_game_users')) || {};
 
     if (currentMode === 'register') {
-        if (db[user]) {
-            msg.innerText = "❌ 帳號已存在！"; return;
-        }
+        if (db[user]) { msg.innerText = "❌ 帳號已存在！"; return; }
         db[user] = { password: pass, highscore: 0 };
         localStorage.setItem('fruit_game_users', JSON.stringify(db));
     } else {
-        if (!db[user] || db[user].password !== pass) {
-            msg.innerText = "❌ 帳號或密碼錯誤！"; return;
-        }
+        if (!db[user] || db[user].password !== pass) { msg.innerText = "❌ 帳號或密碼錯誤！"; return; }
     }
 
-    // 登入成功
     currentUser = user;
     document.getElementById('auth-screen').style.display = 'none';
     document.getElementById('game-container').style.display = 'block';
     document.getElementById('current-user-tag').innerText = user;
     
     updateLeaderboardView();
-    initGame(); // 啟動遊戲
+    initGame(); 
 }
 
-function logout() {
-    location.reload(); // 最快最乾淨的登出方式
-}
+function logout() { location.reload(); }
 
 function updateLeaderboardView() {
     let db = JSON.parse(localStorage.getItem('fruit_game_users')) || {};
-    let players = Object.keys(db).map(username => ({
-        username: username,
-        highscore: db[username].highscore || 0
-    }));
-
-    // 依照分數由高到低排序
+    let players = Object.keys(db).map(username => ({ username: username, highscore: db[username].highscore || 0 }));
     players.sort((a, b) => b.highscore - a.highscore);
-
-    const listHtml = document.getElementById('leaderboard-list');
-    listHtml.innerHTML = players.slice(0, 5).map(p => 
+    document.getElementById('leaderboard-list').innerHTML = players.slice(0, 5).map(p => 
         `<li>${p.username}: <strong>${p.highscore}分</strong></li>`
     ).join('');
 }
@@ -98,86 +88,157 @@ let isReadyToDrop = true;
 
 function initGame() {
     const container = document.getElementById('game-container');
-    const width = 450;
-    const height = 750;
+    const width = 500;
+    const height = 800;
 
-    // 1. 建立物理引擎
-    engine = Matter.Engine.create({ gravity: { y: 1.5 } }); // 稍微加重重力讓下落更乾脆
+    engine = Matter.Engine.create({ gravity: { y: 1.6 } });
     
-    // 2. 建立畫布渲染器
     render = Matter.Render.create({
         element: container,
         engine: engine,
         options: {
             width: width,
             height: height,
-            wireframes: false, // 關閉線框，才會顯示我們設定的顏色
+            wireframes: false, // 關閉線框
             background: 'transparent'
         }
     });
     Matter.Render.run(render);
 
-    // 3. 執行引擎
     runner = Matter.Runner.create();
     Matter.Runner.run(runner, engine);
 
-    // 4. 建立箱子邊界 (地板、左牆、右牆)
+    // 建立邊界
     const wallOptions = { isStatic: true, render: { fillStyle: '#e55039' } };
     const ground = Matter.Bodies.rectangle(width/2, height - 20, width, 40, wallOptions);
     const leftWall = Matter.Bodies.rectangle(10, height/2, 20, height, wallOptions);
     const rightWall = Matter.Bodies.rectangle(width - 10, height/2, 20, height, wallOptions);
     Matter.Composite.add(engine.world, [ground, leftWall, rightWall]);
 
-    // 隨機決定下一個要出現的水果預覽 (限定只會掉落前三種小水果)
+    // 初始化第一個與下一個水果
+    currentFruitIndex = Math.floor(Math.random() * 3);
     rollNextFruit();
 
-    // 5. 監聽玩家點擊畫布事件（放開手指/滑鼠時掉落）
-    render.canvas.addEventListener('click', (e) => {
-        if (!isReadyToDrop) return;
-
-        // 計算點擊的 X 座標並限制在箱子內
+    // 監聽滑鼠/手指移動，更新預測線的位置
+    const trackPosition = (e) => {
         const rect = render.canvas.getBoundingClientRect();
-        let clickX = e.clientX - rect.left;
-        if (clickX < 30) clickX = 30;
-        if (clickX > width - 30) clickX = width - 30;
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        let x = clientX - rect.left;
+        
+        // 限制水果不會穿牆
+        const radius = FRUIT_TYPES[currentFruitIndex].radius;
+        if (x < 20 + radius) x = 20 + radius;
+        if (x > width - 20 - radius) x = width - 20 - radius;
+        
+        currentMouseX = x;
+    };
 
-        dropFruit(clickX);
+    render.canvas.addEventListener('mousemove', trackPosition);
+    render.canvas.addEventListener('touchmove', trackPosition);
+
+    // 點擊/放開手指時掉落
+    const triggerDrop = () => {
+        if (!isReadyToDrop) return;
+        dropFruit(currentMouseX);
+    };
+    render.canvas.addEventListener('click', triggerDrop);
+
+    // ==================== ✨ CANVAS 魔法渲染區 ✨ ====================
+    // 在物理引擎繪製完後，我們自己用 Canvas 畫上水果圖片與虛線
+    Matter.Events.on(render, 'afterRender', () => {
+        const ctx = render.context;
+
+        // 1. 繪製「水平死亡線」
+        ctx.strokeStyle = gameOverCounter > 0 ? '#ff4d4d' : 'rgba(231, 76, 60, 0.6)';
+        ctx.lineWidth = gameOverCounter > 0 ? 4 : 2;
+        ctx.setLineDash([8, 6]);
+        ctx.beginPath();
+        ctx.moveTo(0, DEAD_LINE_Y);
+        ctx.lineTo(width, DEAD_LINE_Y);
+        ctx.stroke();
+        ctx.setLineDash([]); // 還原實線
+
+        // 2. 繪製「垂直預測線」與「準備掉落的水果」
+        if (isReadyToDrop) {
+            // 垂直鉛直線
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([6, 6]);
+            ctx.beginPath();
+            ctx.moveTo(currentMouseX, 80);
+            ctx.lineTo(currentMouseX, height);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // 頂部手持水果
+            const currentFruit = FRUIT_TYPES[currentFruitIndex];
+            ctx.font = `${currentFruit.fontSize}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(currentFruit.emoji, currentMouseX, 80);
+        }
+
+        // 3. 把物理引擎的「純色圓球」全部蓋上「水果 Emoji」
+        const bodies = Matter.Composite.allBodies(engine.world);
+        let fruitIsViolating = false;
+
+        bodies.forEach(body => {
+            if (body.fruitLevel !== undefined) {
+                const config = FRUIT_TYPES[body.fruitLevel];
+                
+                // 畫水果
+                ctx.save();
+                ctx.translate(body.position.x, body.position.y);
+                ctx.rotate(body.angle); // 讓水果跟著物理引擎旋轉！
+                ctx.font = `${config.fontSize}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(config.emoji, 0, 0);
+                ctx.restore();
+
+                // 💀 檢查死亡條件：如果水果定居（速度極慢）且高於死亡線
+                if (body.position.y < DEAD_LINE_Y && body.position.y > 100) {
+                    if (Math.abs(body.velocity.y) < 0.2) {
+                        fruitIsViolating = true;
+                    }
+                }
+            }
+        });
+
+        // 死亡計時器（必須超過這條線停留約 1.5 秒才會死，避免掉落時經過就誤判）
+        if (fruitIsViolating) {
+            gameOverCounter++;
+            if (gameOverCounter > 90) { 
+                handleGameOver();
+                gameOverCounter = 0;
+            }
+        } else {
+            gameOverCounter = 0;
+        }
     });
 
-    // 6. 監聽碰撞事件（觸發合成邏輯）
+    // 監聽合成碰撞
     Matter.Events.on(engine, 'collisionStart', (event) => {
         const pairs = event.pairs;
         pairs.forEach(pair => {
             const bodyA = pair.bodyA;
             const bodyB = pair.bodyB;
 
-            // 確保碰在一起的兩個物體都是水果，且等級相同
             if (bodyA.fruitLevel !== undefined && bodyB.fruitLevel !== undefined) {
                 if (bodyA.fruitLevel === bodyB.fruitLevel) {
                     const currentLevel = bodyA.fruitLevel;
+                    if (currentLevel >= FRUIT_TYPES.length - 1) return; // 已經是西瓜
 
-                    // 如果已經是最高等的西瓜，就不再升級，直接給獎勵分
-                    if (currentLevel >= FRUIT_TYPES.length - 1) return;
-
-                    // 計算碰撞的中心點，作為新水果的誕生位置
                     const midX = (bodyA.position.x + bodyB.position.x) / 2;
                     const midY = (bodyA.position.y + bodyB.position.y) / 2;
 
-                    // 1. 消除舊水果
                     Matter.Composite.remove(engine.world, [bodyA, bodyB]);
 
-                    // 2. 加分：依據合成出來的新水果等級給分（體積越大分數越高！）
                     const nextLevel = currentLevel + 1;
                     currentScore += FRUIT_TYPES[nextLevel].score;
                     document.getElementById('score').innerText = currentScore;
 
-                    // 3. 生成新等級的水果
                     spawnFruit(midX, midY, nextLevel);
-                    
-                    // 4. 順便檢查是否觸發遊戲結束 (如果堆太高，這裡先簡單判定 Y 軸)
-                    if(midY < 120) {
-                        handleGameOver();
-                    }
                 }
             }
         });
@@ -185,20 +246,21 @@ function initGame() {
 }
 
 function rollNextFruit() {
-    nextFruitIndex = Math.floor(Math.random() * 3); // 0, 1, 2 (草莓、檸檬、橘子)
+    nextFruitIndex = Math.floor(Math.random() * 3); 
     document.getElementById('next-fruit-preview').innerText = FRUIT_TYPES[nextFruitIndex].emoji;
 }
 
 function dropFruit(x) {
     isReadyToDrop = false;
 
-    // 在玩家點擊的 X 位置頂端 (Y=80) 產生剛剛預玩的水果
-    spawnFruit(x, 80, nextFruitIndex);
+    // 產生水果
+    spawnFruit(x, 80, currentFruitIndex);
 
-    // 隨機搖出再下一個水果
+    // 把下一個水果移到手上，並搖出再下一個
+    currentFruitIndex = nextFruitIndex;
     rollNextFruit();
 
-    // 防止玩家連點的冷卻時間 (0.5秒)
+    // CD 時間冷卻（0.5秒後才可以再丟下一個）
     setTimeout(() => {
         isReadyToDrop = true;
     }, 500);
@@ -207,25 +269,18 @@ function dropFruit(x) {
 function spawnFruit(x, y, level) {
     const config = FRUIT_TYPES[level];
     
-    // 建立圓形物理體
     const fruit = Matter.Bodies.circle(x, y, config.radius, {
-        restitution: 0.3, // 稍微帶點彈性
+        restitution: 0.2,
         friction: 0.1,
-        render: {
-            fillStyle: config.color // 水果顏色
-        }
+        render: { visible: false } // 🔴 隱藏 Matter.js 原本的純色圓球，只顯示我們的 Emoji！
     });
 
-    // 在物體上綁定我們自訂的標籤，方便碰撞時辨識
     fruit.fruitLevel = level;
-
     Matter.Composite.add(engine.world, fruit);
 }
 
 function handleGameOver() {
-    // 簡單的判定：當有合成發生在頂部時觸發
-    // 實務上可以做一條虛擬紅線，超過 3 秒才死，這邊先做即時結算
     saveScore(currentScore);
-    alert(`👻 遊戲結束！你的得分是：${currentScore} 分`);
+    alert(`👻 堆太高啦！遊戲結束！您的最終得分是：${currentScore} 分`);
     logout();
 }

@@ -34,6 +34,7 @@ body {
 .tab-buttons button {
     background: none; border: none; color: #aaa;
     font-size: 16px; padding: 10px 20px; cursor: pointer;
+    outline: none;
 }
 .tab-buttons button.active {
     color: #fff; border-bottom: 3px solid #3498db; font-weight: bold;
@@ -42,6 +43,8 @@ body {
 input {
     width: 90%; padding: 12px; margin: 15px 0 0 0;
     border-radius: 8px; border: none; font-size: 14px;
+    background: #ecf0f1;
+    color: #333;
 }
 
 button[type="submit"] {
@@ -50,7 +53,7 @@ button[type="submit"] {
     border-radius: 8px; font-size: 16px; cursor: pointer;
 }
 
-/* 🎯 放大後的遊戲主容器 */
+/* 🎯 遊戲主容器 */
 #game-container {
     position: relative;
     width: 500px;
@@ -63,19 +66,51 @@ button[type="submit"] {
 }
 
 .header {
-    display: flex; justify-content: space-between;
-    padding: 15px; background: rgba(0,0,0,0.2);
-    font-size: 18px; font-weight: bold;
+    display: flex; 
+    justify-content: space-between;
+    padding: 15px; 
+    background: rgba(0,0,0,0.2);
+    font-size: 18px; 
+    font-weight: bold;
 }
 
 /* 右上角進化鏈 */
 .evolution-chain {
-    position: absolute; top: 65px; right: 15px;
-    background: rgba(255,255,255,0.9); color: #333;
-    padding: 10px; border-radius: 10px; font-size: 12px;
+    position: absolute; 
+    top: 65px; 
+    right: 15px;
+    background: rgba(255,255,255,0.9); 
+    color: #333;
+    padding: 10px; 
+    border-radius: 10px; 
+    font-size: 12px;
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     z-index: 10;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    overflow: hidden;
+    width: 170px;
+    max-height: 150px;
 }
+.evolution-chain p { margin: 0 0 5px 0; font-weight: bold; }
+
+/* ✨ 進化鏈縮起狀態 ✨ */
+.evolution-chain.collapsed {
+    width: 35px; 
+    height: 35px; 
+    padding: 0; 
+    border-radius: 50%;
+    background: #f19066;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.evolution-chain.collapsed::before {
+    content: "🔄";
+    font-size: 16px;
+}
+.evolution-chain.collapsed * { display: none; }
+
 .chain-items { display: flex; gap: 4px; margin-top: 5px; }
 .chain-dot {
     width: 22px; height: 22px; border-radius: 50%;
@@ -85,17 +120,55 @@ button[type="submit"] {
 
 /* 排行榜 */
 .leaderboard-box {
-    position: absolute; top: 65px; left: 15px;
-    background: rgba(0,0,0,0.6); padding: 10px;
-    border-radius: 10px; width: 140px; font-size: 13px;
+    position: absolute; 
+    top: 65px; 
+    left: 15px;
+    background: rgba(0,0,0,0.6); 
+    padding: 10px;
+    border-radius: 10px; 
+    width: 140px; 
+    font-size: 13px;
     z-index: 10;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    overflow: hidden;
+    max-height: 180px;
 }
 .leaderboard-box h3 { margin: 0 0 8px 0; font-size: 14px; color: #f1c40f;}
+
+/* ✨ 排行榜縮起狀態 ✨ */
+.leaderboard-box.collapsed {
+    width: 35px; 
+    height: 35px; 
+    padding: 0; 
+    border-radius: 50%;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.leaderboard-box.collapsed::before {
+    content: "🏆";
+    font-size: 16px;
+}
+.leaderboard-box.collapsed * { display: none; }
+
 ol { margin: 0; padding-left: 20px; }
 li { margin-bottom: 4px; }
 
+/* 獨立的登出按鈕 */
 .logout-btn {
     background: #e74c3c; color: white; border: none;
-    padding: 4px 8px; border-radius: 4px; margin-top: 10px; cursor: pointer; width: 100%;
+    padding: 6px 12px; border-radius: 6px; cursor: pointer;
+    position: absolute; 
+    top: 260px; 
+    left: 15px; 
+    z-index: 9;
+    transition: top 0.3s ease;
 }
+/* 當排行榜縮起時，自動將登出按鈕往上移動，排版更乾淨 ✨ */
+#leaderboard-box.collapsed + .logout-btn {
+    top: 115px;
+}
+
 canvas { display: block; }

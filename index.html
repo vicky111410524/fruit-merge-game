@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>水果合成大對決</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+</head>
+<body>
+
+    <div id="auth-screen" class="overlay">
+        <div class="auth-box">
+            <h2>水果合成大對決 🍓</h2>
+            <div class="tab-buttons">
+                <button id="tab-login" class="active" onclick="switchTab('login')">登入</button>
+                <button id="tab-register" onclick="switchTab('register')">註冊帳號</button>
+            </div>
+            
+            <form id="auth-form" onsubmit="handleAuth(event)">
+                <input type="text" id="username" placeholder="請輸入使用者名稱" required>
+                <input type="password" id="password" placeholder="請輸入密碼" required>
+                <button type="submit" id="submit-btn">進入遊戲</button>
+            </form>
+            <p id="auth-message" class="error-msg"></p>
+        </div>
+    </div>
+
+    <div id="game-container" style="display: none;">
+        <div class="header">
+            <div class="user-info">玩家: <span id="current-user-tag">---</span></div>
+            <div class="score-box">得分: <span id="score">0</span></div>
+        </div>
+
+        <div class="evolution-chain">
+            <p>進化鏈 ➡️</p>
+            <div class="chain-items">
+                <span class="chain-dot" style="background:#ff4d4d;" title="草莓">🍓</span>
+                <span class="chain-dot" style="background:#ffd700;" title="檸檬">🍋</span>
+                <span class="chain-dot" style="background:#ffa500;" title="橘子">🍊</span>
+                <span class="chain-dot" style="background:#ff6347;" title="番茄">🍅</span>
+                <span class="chain-dot" style="background:#9370db;" title="葡萄">🍇</span>
+                <span class="chain-dot" style="background:#2ed573;" title="西瓜">🍉</span>
+            </div>
+            <div class="next-box">下一個: <span id="next-fruit-preview">🍓</span></div>
+        </div>
+
+        <div class="leaderboard-box">
+            <h3>🏆 前五名排行榜</h3>
+            <ol id="leaderboard-list">
+                </ol>
+            <button onclick="logout()" class="logout-btn">登出</button>
+        </div>
+
+        </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

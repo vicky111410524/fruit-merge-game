@@ -16,13 +16,14 @@ function toggleBox(boxId) {
 }
 
 // ==================== 1. 遊戲設定與水果資料庫 ====================
+// ✨ 針對裁切技術重新調校半徑與字體大小，確保 Emoji 完美填滿圓圈 ✨
 const FRUIT_TYPES = [
-    { name: '草莓', radius: 35, score: 2,  color: '#ff4d4d', emoji: '🍓', fontSize: 75 },
-    { name: '檸檬', radius: 50, score: 5,  color: '#ffd700', emoji: '🍋', fontSize: 110 },
-    { name: '橘子', radius: 70, score: 12, color: '#ffa500', emoji: '🍊', fontSize: 155 },
-    { name: '番茄', radius: 95, score: 25, color: '#ff6347', emoji: '🍅', fontSize: 215 },
-    { name: '葡萄', radius: 125, score: 50, color: '#9370db', emoji: '🍇', fontSize: 290 }, // ✨ 葡萄 (Index 4)
-    { name: '西瓜', radius: 160, score: 100,color: '#2ed573', emoji: '🍉', fontSize: 380 }  // ✨ 西瓜 (Index 5)
+    { name: '草莓', radius: 35, score: 2,  color: '#ff4d4d', emoji: '🍓', fontSize: 90 }, // 字體調大配合裁切
+    { name: '檸檬', radius: 50, score: 5,  color: '#ffd700', emoji: '🍋', fontSize: 130 },
+    { name: '橘子', radius: 70, score: 12, color: '#ffa500', emoji: '🍊', fontSize: 180 },
+    { name: '番茄', radius: 95, score: 25, color: '#ff6347', emoji: '🍅', fontSize: 240 },
+    { name: '葡萄', radius: 125, score: 50, color: '#9370db', emoji: '🍇', fontSize: 320 }, // 葡萄 (Index 4)
+    { name: '西瓜', radius: 160, score: 100,color: '#2ed573', emoji: '🍉', fontSize: 410 }  // 西瓜 (Index 5)
 ];
 
 const DEAD_LINE_Y = 220; // 💀 水平死亡線的 Y 軸位置
@@ -183,7 +184,7 @@ function initGame() {
             ctx.fillText(currentFruit.emoji, currentMouseX, 100);
         }
 
-        // 3. 把物理引擎的圓球覆蓋上水果 Emoji 與自定義光圈
+        // 3. 把物理引擎的圓球覆蓋上「完美裁切」的水果 Emoji 與光圈
         const bodies = Matter.Composite.allBodies(engine.world);
         let fruitIsViolating = false;
 
@@ -191,27 +192,43 @@ function initGame() {
             if (body.fruitLevel !== undefined) {
                 const config = FRUIT_TYPES[body.fruitLevel];
                 
-                // 3a. 先繪製旋轉的水果 Emoji (existing)
+                // === ✨ 終極優化：裁切貼圖技術 ✨ ===
+                // 1. 儲存目前的 Canvas 狀態 (重要！)
                 ctx.save();
+                
+                // 2. 移動到水果圓心
                 ctx.translate(body.position.x, body.position.y);
-                ctx.rotate(body.angle); 
+                
+                // 3. 🔴 定義完美圓形裁切模具 (對應物理半徑 radius)
+                ctx.beginPath();
+                ctx.arc(0, 0, config.radius, 0, 2 * Math.PI);
+                ctx.closePath();
+                
+                // 4. 啟用裁切！後續畫在這個 ctx 上的內容，多出來的部分會自動被切除。
+                ctx.clip(); 
+                
+                // 5. 繪製旋轉的水果 Emoji
+                ctx.rotate(body.angle); // 表情包旋轉
                 ctx.font = `${config.fontSize}px Arial`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
+                
+                // 字體已經稍微放大，透過裁切， Emoji 的邊緣會被圓形模具「硬裁切」，絕對緊貼圓周
                 ctx.fillText(config.emoji, 0, 0);
+                
+                // 6. 🟢 還原 Canvas 狀態 (避免影響後續繪圖)
                 ctx.restore();
 
-                // 3b. ✨ 新增：為葡萄(4)和西瓜(5)繪製碰撞光圈 ✨
-                // 由於是圓形光圈，不需跟隨 body.angle 旋轉，只需精準貼合物理圓心與半徑
+
+                // 3b. ✨ 保持：為葡萄(4)和西瓜(5)繪製外部碰撞光圈 (Overlay)
                 if (body.fruitLevel === 4 || body.fruitLevel === 5) {
                     ctx.save();
                     ctx.beginPath();
-                    // 物理圓心坐標，半徑使用 config.radius
+                    // 光圈本身是 UI，不需旋轉，保持乾淨
                     ctx.arc(body.position.x, body.position.y, config.radius, 0, 2 * Math.PI);
                     
-                    // 使用半透明白色 UI 圈，讓邊界清晰可見但不刺眼
                     ctx.strokeStyle = 'rgba(255, 255, 255, 0.65)'; // 65% 透明白
-                    ctx.lineWidth = 6; // 厚一點以便看清
+                    ctx.lineWidth = 6; 
                     ctx.stroke();
                     ctx.restore();
                 }
@@ -219,7 +236,6 @@ function initGame() {
                 // 💀 【優化版】檢查死亡條件：改用水果「頂部邊緣」判定
                 const topEdge = body.position.y - config.radius;
                 if (topEdge < DEAD_LINE_Y && body.position.y > 130) {
-                    // 放寬物理引擎微幅擠壓抖動的速度閾值至 0.5
                     if (Math.abs(body.velocity.y) < 0.5 && Math.abs(body.velocity.x) < 0.5) {
                         fruitIsViolating = true;
                     }
@@ -235,7 +251,6 @@ function initGame() {
                 gameOverCounter = 0;
             }
         } else {
-            // 沒超線時不直接歸零，而是緩慢衰減
             if (gameOverCounter > 0) gameOverCounter -= 2;
         }
     });

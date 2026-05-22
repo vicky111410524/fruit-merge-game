@@ -21,8 +21,8 @@ const FRUIT_TYPES = [
     { name: '檸檬', radius: 50, score: 5,  color: '#ffd700', emoji: '🍋', fontSize: 110 },
     { name: '橘子', radius: 70, score: 12, color: '#ffa500', emoji: '🍊', fontSize: 155 },
     { name: '番茄', radius: 95, score: 25, color: '#ff6347', emoji: '🍅', fontSize: 215 },
-    { name: '葡萄', radius: 125, score: 50, color: '#9370db', emoji: '🍇', fontSize: 290 },
-    { name: '西瓜', radius: 160, score: 100,color: '#2ed573', emoji: '🍉', fontSize: 380 }
+    { name: '葡萄', radius: 125, score: 50, color: '#9370db', emoji: '🍇', fontSize: 290 }, // ✨ 葡萄 (Index 4)
+    { name: '西瓜', radius: 160, score: 100,color: '#2ed573', emoji: '🍉', fontSize: 380 }  // ✨ 西瓜 (Index 5)
 ];
 
 const DEAD_LINE_Y = 220; // 💀 水平死亡線的 Y 軸位置
@@ -183,7 +183,7 @@ function initGame() {
             ctx.fillText(currentFruit.emoji, currentMouseX, 100);
         }
 
-        // 3. 把物理引擎的圓球覆蓋上水果 Emoji
+        // 3. 把物理引擎的圓球覆蓋上水果 Emoji 與自定義光圈
         const bodies = Matter.Composite.allBodies(engine.world);
         let fruitIsViolating = false;
 
@@ -191,6 +191,7 @@ function initGame() {
             if (body.fruitLevel !== undefined) {
                 const config = FRUIT_TYPES[body.fruitLevel];
                 
+                // 3a. 先繪製旋轉的水果 Emoji (existing)
                 ctx.save();
                 ctx.translate(body.position.x, body.position.y);
                 ctx.rotate(body.angle); 
@@ -199,6 +200,21 @@ function initGame() {
                 ctx.textBaseline = 'middle';
                 ctx.fillText(config.emoji, 0, 0);
                 ctx.restore();
+
+                // 3b. ✨ 新增：為葡萄(4)和西瓜(5)繪製碰撞光圈 ✨
+                // 由於是圓形光圈，不需跟隨 body.angle 旋轉，只需精準貼合物理圓心與半徑
+                if (body.fruitLevel === 4 || body.fruitLevel === 5) {
+                    ctx.save();
+                    ctx.beginPath();
+                    // 物理圓心坐標，半徑使用 config.radius
+                    ctx.arc(body.position.x, body.position.y, config.radius, 0, 2 * Math.PI);
+                    
+                    // 使用半透明白色 UI 圈，讓邊界清晰可見但不刺眼
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.65)'; // 65% 透明白
+                    ctx.lineWidth = 6; // 厚一點以便看清
+                    ctx.stroke();
+                    ctx.restore();
+                }
 
                 // 💀 【優化版】檢查死亡條件：改用水果「頂部邊緣」判定
                 const topEdge = body.position.y - config.radius;
@@ -219,7 +235,7 @@ function initGame() {
                 gameOverCounter = 0;
             }
         } else {
-            // 沒超線時不直接歸零，而是緩慢衰減，防止因為瞬間的物理抖動洗掉計時器
+            // 沒超線時不直接歸零，而是緩慢衰減
             if (gameOverCounter > 0) gameOverCounter -= 2;
         }
     });

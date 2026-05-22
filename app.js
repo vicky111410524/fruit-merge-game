@@ -15,17 +15,18 @@ function toggleBox(boxId) {
     }
 }
 
-// ==================== 1. 遊戲設定與水果資料庫 (✨ 放大 2 倍 ✨) ====================
+// ==================== 1. 遊戲設定與水果資料庫 ====================
+// 完美緊貼的物理半徑(radius)與字體大小(fontSize)調校
 const FRUIT_TYPES = [
-    { name: '草莓', radius: 30, score: 2,  color: '#ff4d4d', emoji: '🍓', fontSize: 64 },
-    { name: '檸檬', radius: 45, score: 5,  color: '#ffd700', emoji: '🍋', fontSize: 96 },
-    { name: '橘子', radius: 63, score: 12, color: '#ffa500', emoji: '🍊', fontSize: 136 },
-    { name: '番茄', radius: 75, score: 25, color: '#ff6347', emoji: '🍅', fontSize: 176 },
-    { name: '葡萄', radius: 108, score: 50, color: '#9370db', emoji: '🍇', fontSize: 230 },
-    { name: '西瓜', radius: 130, score: 100,color: '#2ed573', emoji: '🍉', fontSize: 310 }
+    { name: '草莓', radius: 35, score: 2,  color: '#ff4d4d', emoji: '🍓', fontSize: 75 },
+    { name: '檸檬', radius: 50, score: 5,  color: '#ffd700', emoji: '🍋', fontSize: 110 },
+    { name: '橘子', radius: 70, score: 12, color: '#ffa500', emoji: '🍊', fontSize: 155 },
+    { name: '番茄', radius: 95, score: 25, color: '#ff6347', emoji: '🍅', fontSize: 215 },
+    { name: '葡萄', radius: 125, score: 50, color: '#9370db', emoji: '🍇', fontSize: 290 },
+    { name: '西瓜', radius: 160, score: 100,color: '#2ed573', emoji: '🍉', fontSize: 380 }
 ];
 
-const DEAD_LINE_Y = 220; // 💀 水平死亡線的 Y 軸位置 (配合大水果調整)
+const DEAD_LINE_Y = 220; // 💀 水平死亡線的 Y 軸位置
 let currentScore = 0;
 let currentMode = 'login';
 let currentUser = null;
@@ -116,24 +117,23 @@ function initGame() {
     runner = Matter.Runner.create();
     Matter.Runner.run(runner, engine);
 
-    // 建立邊界 (牆壁厚度 20)
+    // 建立邊界
     const wallOptions = { isStatic: true, render: { fillStyle: '#e55039' } };
     const ground = Matter.Bodies.rectangle(width/2, height - 20, width, 40, wallOptions);
     const leftWall = Matter.Bodies.rectangle(10, height/2, 20, height, wallOptions);
     const rightWall = Matter.Bodies.rectangle(width - 10, height/2, 20, height, wallOptions);
     Matter.Composite.add(engine.world, [ground, leftWall, rightWall]);
 
-    // 初始化第一個與下一個水果
+    // ✨ 初始水果隨機包含 0(草莓)、1(檸檬)、2(橘子)
     currentFruitIndex = Math.floor(Math.random() * 3);
     rollNextFruit();
 
-    // 監聽滑鼠/手指移動，更新預測線的位置
+    // 監聽滑鼠/手指移動
     const trackPosition = (e) => {
         const rect = render.canvas.getBoundingClientRect();
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         let x = clientX - rect.left;
         
-        // 限制水果不會穿牆
         const radius = FRUIT_TYPES[currentFruitIndex].radius;
         if (x < 20 + radius) x = 20 + radius;
         if (x > width - 20 - radius) x = width - 20 - radius;
@@ -144,14 +144,14 @@ function initGame() {
     render.canvas.addEventListener('mousemove', trackPosition);
     render.canvas.addEventListener('touchmove', trackPosition);
 
-    // 點擊/放開手指時掉落
+    // 點擊掉落
     const triggerDrop = () => {
         if (!isReadyToDrop) return;
         dropFruit(currentMouseX);
     };
     render.canvas.addEventListener('click', triggerDrop);
 
-    // ==================== ✨ CANVAS 魔法渲染區 ✨ ====================
+    // ==================== ✨ CANVAS 渲染區 ✨ ====================
     Matter.Events.on(render, 'afterRender', () => {
         const ctx = render.context;
 
@@ -163,7 +163,7 @@ function initGame() {
         ctx.moveTo(0, DEAD_LINE_Y);
         ctx.lineTo(width, DEAD_LINE_Y);
         ctx.stroke();
-        ctx.setLineDash([]); // 還原實線
+        ctx.setLineDash([]); 
 
         // 2. 繪製「垂直預測線」與「準備掉落的水果」
         if (isReadyToDrop) {
@@ -194,14 +194,14 @@ function initGame() {
                 
                 ctx.save();
                 ctx.translate(body.position.x, body.position.y);
-                ctx.rotate(body.angle); // 讓水果跟著旋轉
+                ctx.rotate(body.angle); 
                 ctx.font = `${config.fontSize}px Arial`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillText(config.emoji, 0, 0);
                 ctx.restore();
 
-                // 💀 檢查死亡條件：如果水果定居（速度極慢）且高於死亡線
+                // 💀 檢查死亡條件
                 if (body.position.y < DEAD_LINE_Y && body.position.y > 150) {
                     if (Math.abs(body.velocity.y) < 0.2) {
                         fruitIsViolating = true;
@@ -210,7 +210,7 @@ function initGame() {
             }
         });
 
-        // 死亡計時器（停留約 1.5 秒判定結束）
+        // 死亡計時判定
         if (fruitIsViolating) {
             gameOverCounter++;
             if (gameOverCounter > 90) { 
@@ -232,7 +232,7 @@ function initGame() {
             if (bodyA.fruitLevel !== undefined && bodyB.fruitLevel !== undefined) {
                 if (bodyA.fruitLevel === bodyB.fruitLevel) {
                     const currentLevel = bodyA.fruitLevel;
-                    if (currentLevel >= FRUIT_TYPES.length - 1) return; // 已經是最大西瓜
+                    if (currentLevel >= FRUIT_TYPES.length - 1) return; 
 
                     const midX = (bodyA.position.x + bodyB.position.x) / 2;
                     const midY = (bodyA.position.y + bodyB.position.y) / 2;
@@ -250,6 +250,7 @@ function initGame() {
     });
 }
 
+// ✨ 隨機生成的新水果範圍擴大：0(草莓)、1(檸檬)、2(橘子) 隨機生成
 function rollNextFruit() {
     nextFruitIndex = Math.floor(Math.random() * 3); 
     document.getElementById('next-fruit-preview').innerText = FRUIT_TYPES[nextFruitIndex].emoji;
@@ -265,7 +266,7 @@ function dropFruit(x) {
 
     setTimeout(() => {
         isReadyToDrop = true;
-    }, 600); // 調整 CD 時間配合大水果
+    }, 600); 
 }
 
 function spawnFruit(x, y, level) {
@@ -274,7 +275,7 @@ function spawnFruit(x, y, level) {
     const fruit = Matter.Bodies.circle(x, y, config.radius, {
         restitution: 0.2,
         friction: 0.1,
-        render: { visible: false } // 隱藏 Matter.js 原本的純色圓球
+        render: { visible: false } 
     });
 
     fruit.fruitLevel = level;
@@ -284,5 +285,23 @@ function spawnFruit(x, y, level) {
 function handleGameOver() {
     saveScore(currentScore);
     alert(`👻 堆太高啦！遊戲結束！您的最終得分是：${currentScore} 分`);
-    logout();
+    resetGame(); 
+}
+
+// ✨ 重置遊戲時，新水果也同步修正為 0 ~ 2 隨機
+function resetGame() {
+    const bodies = Matter.Composite.allBodies(engine.world);
+    bodies.forEach(body => {
+        if (body.fruitLevel !== undefined) {
+            Matter.Composite.remove(engine.world, body);
+        }
+    });
+
+    currentScore = 0;
+    document.getElementById('score').innerText = currentScore;
+    gameOverCounter = 0;
+    isReadyToDrop = true;
+
+    currentFruitIndex = Math.floor(Math.random() * 3);
+    rollNextFruit();
 }

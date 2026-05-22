@@ -1,3 +1,4 @@
+
 const CACHE_NAME = 'fruit-game-v1';
 // 需要離線快取的檔案清單
 const ASSETS_TO_CACHE = [

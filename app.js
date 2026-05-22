@@ -16,7 +16,6 @@ function toggleBox(boxId) {
 }
 
 // ==================== 1. 遊戲設定與水果資料庫 ====================
-// 完美緊貼的物理半徑(radius)與字體大小(fontSize)調校
 const FRUIT_TYPES = [
     { name: '草莓', radius: 35, score: 2,  color: '#ff4d4d', emoji: '🍓', fontSize: 75 },
     { name: '檸檬', radius: 50, score: 5,  color: '#ffd700', emoji: '🍋', fontSize: 110 },
@@ -124,7 +123,7 @@ function initGame() {
     const rightWall = Matter.Bodies.rectangle(width - 10, height/2, 20, height, wallOptions);
     Matter.Composite.add(engine.world, [ground, leftWall, rightWall]);
 
-    // ✨ 初始水果隨機包含 0(草莓)、1(檸檬)、2(橘子)
+    // 初始水果隨機包含 0(草莓)、1(檸檬)、2(橘子)
     currentFruitIndex = Math.floor(Math.random() * 3);
     rollNextFruit();
 
@@ -156,8 +155,8 @@ function initGame() {
         const ctx = render.context;
 
         // 1. 繪製「水平死亡線」
-        ctx.strokeStyle = gameOverCounter > 0 ? '#ff4d4d' : 'rgba(231, 76, 60, 0.6)';
-        ctx.lineWidth = gameOverCounter > 0 ? 4 : 2;
+        ctx.strokeStyle = gameOverCounter > 20 ? '#ff4d4d' : 'rgba(231, 76, 60, 0.6)';
+        ctx.lineWidth = gameOverCounter > 20 ? 4 : 2;
         ctx.setLineDash([8, 6]);
         ctx.beginPath();
         ctx.moveTo(0, DEAD_LINE_Y);
@@ -201,24 +200,27 @@ function initGame() {
                 ctx.fillText(config.emoji, 0, 0);
                 ctx.restore();
 
-                // 💀 檢查死亡條件
-                if (body.position.y < DEAD_LINE_Y && body.position.y > 150) {
-                    if (Math.abs(body.velocity.y) < 0.2) {
+                // 💀 【優化版】檢查死亡條件：改用水果「頂部邊緣」判定
+                const topEdge = body.position.y - config.radius;
+                if (topEdge < DEAD_LINE_Y && body.position.y > 130) {
+                    // 放寬物理引擎微幅擠壓抖動的速度閾值至 0.5
+                    if (Math.abs(body.velocity.y) < 0.5 && Math.abs(body.velocity.x) < 0.5) {
                         fruitIsViolating = true;
                     }
                 }
             }
         });
 
-        // 死亡計時判定
+        // 💀 【優化版】死亡計時判定
         if (fruitIsViolating) {
             gameOverCounter++;
-            if (gameOverCounter > 90) { 
+            if (gameOverCounter > 60) { // 累積滿 60 幀（約 1 秒）保持靜止超線就結束
                 handleGameOver();
                 gameOverCounter = 0;
             }
         } else {
-            gameOverCounter = 0;
+            // 沒超線時不直接歸零，而是緩慢衰減，防止因為瞬間的物理抖動洗掉計時器
+            if (gameOverCounter > 0) gameOverCounter -= 2;
         }
     });
 
@@ -250,7 +252,6 @@ function initGame() {
     });
 }
 
-// ✨ 隨機生成的新水果範圍擴大：0(草莓)、1(檸檬)、2(橘子) 隨機生成
 function rollNextFruit() {
     nextFruitIndex = Math.floor(Math.random() * 3); 
     document.getElementById('next-fruit-preview').innerText = FRUIT_TYPES[nextFruitIndex].emoji;
@@ -288,7 +289,6 @@ function handleGameOver() {
     resetGame(); 
 }
 
-// ✨ 重置遊戲時，新水果也同步修正為 0 ~ 2 隨機
 function resetGame() {
     const bodies = Matter.Composite.allBodies(engine.world);
     bodies.forEach(body => {

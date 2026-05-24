@@ -2,57 +2,63 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>水果合成大對決 PWA</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>合成大西瓜 - 雲端連線版</title>
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
 </head>
 <body>
 
-    <div id="auth-screen" class="overlay">
+    <div id="auth-screen">
         <div class="auth-box">
-            <div class="tab-buttons">
-                <button id="tab-login" class="active" onclick="switchTab('login')">登入帳號</button>
-                <button id="tab-register" onclick="switchTab('register')">註冊帳號</button>
+            <h2>🍉 合成大西瓜</h2>
+            <div class="tabs">
+                <button id="tab-login" class="active" onclick="switchTab('login')">登入</button>
+                <button id="tab-register" onclick="switchTab('register')">註冊</button>
             </div>
-            <form id="auth-form" onsubmit="handleAuth(event)">
-                <input type="text" id="username" placeholder="請輸入使用者名稱" required>
+            <form onsubmit="handleAuth(event)">
+                <input type="text" id="username" placeholder="請輸入帳號" required>
                 <input type="password" id="password" placeholder="請輸入密碼" required>
                 <button type="submit" id="submit-btn">進入遊戲</button>
             </form>
-            <p id="auth-message" style="color: #ff7675; margin-top: 15px; font-size: 14px;"></p>
+            <p id="auth-message" style="color: #ff4d4d; margin-top: 10px; font-weight: bold;"></p>
         </div>
     </div>
 
     <div id="game-container" style="display: none;">
-        <div class="header">
-            <div>玩家: <span id="current-user-tag">---</span></div>
-            <div>得分: <span id="score">0</span></div>
-        </div>
-
-        <div id="evolution-chain-box" class="evolution-chain" onclick="toggleBox('evolution-chain-box')">
-            <p>進化鍊 🔄</p> 
-            <div class="chain-items">
-                <span class="chain-dot" style="background:#ff4d4d;" title="草莓">🍓</span>
-                <span class="chain-dot" style="background:#ffd700;" title="檸檬">🍋</span>
-                <span class="chain-dot" style="background:#ffa500;" title="橘子">🍊</span>
-                <span class="chain-dot" style="background:#ff6347;" title="番茄">🍅</span>
-                <span class="chain-dot" style="background:#9370db;" title="葡萄">🍇</span>
-                <span class="chain-dot" style="background:#2ed573;" title="西瓜">🍉</span>
+        
+        <div class="header-info">
+            <div class="player-info">
+                玩家: <span id="current-user-tag"></span>
             </div>
-            <div class="next-box">下一個: <span id="next-fruit-preview">🍓</span></div>
+            <div class="score-info">
+                得分: <span id="score">0</span>
+            </div>
         </div>
 
-        <div id="leaderboard-box" class="leaderboard-box" onclick="toggleBox('leaderboard-box')">
-            <h3>排行榜 🏆</h3>
-            <ol id="leaderboard-list">
-                </ol>
+        <div id="leaderboard-box" class="ui-box">
+            <h3 onclick="toggleBox('leaderboard-box')" style="cursor: pointer;">🏆 前五名排行榜</h3>
+            <ul id="leaderboard-list">
+                <li>連線中...</li>
+            </ul>
+            <button onclick="logout()" class="logout-btn">登出</button>
         </div>
 
-        <button id="logout-btn" onclick="logout()" class="logout-btn">登出</button>
+        <div id="hint-box" class="ui-box right-box">
+            <h3 onclick="toggleBox('hint-box')" style="cursor: pointer;">進化鏈 ➡️</h3>
+            <div class="evolution-chain">
+                🍓➡️🍋➡️🍊➡️🍅➡️🍇➡️🍉
+            </div>
+            <div class="next-fruit" style="margin-top: 8px;">
+                下一個: <span id="next-fruit-preview">🍓</span>
+            </div>
+        </div>
+
     </div>
 
-    <script src="app.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    
+    <script type="module" src="app.js"></script>
+    
 </body>
 </html>

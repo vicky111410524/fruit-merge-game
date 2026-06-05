@@ -12,15 +12,7 @@ import {
     onSnapshot 
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
-// 你的專屬 Google 雲端金鑰
-const firebaseConfig = {
-    apiKey: "AIzaSyC504AnP9sb4AFoqm5IQ3g8PfUvGMtbwfc",
-    authDomain: "my-fruit-game.firebaseapp.com",
-    projectId: "my-fruit-game",
-    storageBucket: "my-fruit-game.firebasestorage.app",
-    messagingSenderId: "138789979468",
-    appId: "1:138789979468:web:c842b2080ede2832257be9"
-};
+
 
 // 初始化 Firebase 與 Firestore 雲端資料庫
 const app = initializeApp(firebaseConfig);
